@@ -50,12 +50,12 @@ public class AuthenticationService {
     InvalidationToken invalidationToken;
     UserRepository userRepository;
     RoleRepository roleRepository;
-//    public String addRole(RoleCreationRequest request){
-//        roleRepository.save(Role.builder()
-//                        .name(request.getName())
-//                .build());
-//        return "ok";
-//    }
+    public String addRole(RoleCreationRequest request){
+        roleRepository.save(Role.builder()
+                        .name(request.getName())
+                .build());
+        return "ok";
+    }
     public LoginResponse login(LoginRequest request) throws KeyLengthException {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(()-> new AppException(ErrorCode.USER_NOT_EXISTED));

@@ -1,32 +1,23 @@
-package com.tutor.project.entity;
+package com.tutor.project.dto.response;
 
 import com.tutor.project.constant.PaymentStatus;
 import com.tutor.project.constant.ReviewStatus;
-import jakarta.persistence.*;
+import com.tutor.project.entity.User;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Getter
-@Setter
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UpdateRoleRequest {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+public class UpdateRoleResponse {
     String id;
-    @ManyToOne
-    @JoinColumn(name="user_id",nullable = false)
-    User user;
-    String cvImage;
-    @Enumerated(EnumType.STRING)
-    ReviewStatus reviewStatus;
-    @Enumerated(EnumType.STRING)
     PaymentStatus paymentStatus;
     LocalDateTime paymentDeadline;
     LocalDateTime requestedAt;
+    ReviewStatus reviewStatus;
+    String cvImage;
 }

@@ -15,9 +15,9 @@ import java.util.Optional;
 @Repository
 public interface UpdateRoleRequestRepository extends JpaRepository<UpdateRoleRequest,String> {
     @Query("SELECT u FROM UpdateRoleRequest u " +
-            " WHERE u.user.id=:userId and u.reviewStatus = 2 or u.reviewStatus= 1 ")
+            " WHERE u.user.id=:userId and u.reviewStatus = APPROVED or u.reviewStatus= PENDING ")
     Optional<UpdateRoleRequest> findByUserId(@Param("userId") String userId);
     @Query("SELECT u FROM UpdateRoleRequest u " +
-            "WHERE u.paymentStatus= 0 and u.paymentDeadline > :time")
+            "WHERE u.paymentStatus = UNPAID and u.paymentDeadline > :time")
     Optional<UpdateRoleRequest>findAllExpiredRequest(@Param("time") LocalDateTime time);
 }

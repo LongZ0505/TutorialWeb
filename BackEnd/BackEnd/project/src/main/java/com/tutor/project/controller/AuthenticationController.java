@@ -48,11 +48,11 @@ public class AuthenticationController {
                 .result(authenticationService.refreshToken(request))
                 .build();
     }
-//    @PostMapping("/role")
-//    public ApiResponse<String> addRoles(@RequestBody RoleCreationRequest request){
-//        return ApiResponse.<String>builder()
-//                .result(authenticationService.addRole(request))
-//                .build();
-//
-//    }
+    @PostMapping("/role")
+    public ApiResponse<String> addRoles(@RequestBody RoleCreationRequest request){
+        return ApiResponse.<String>builder()
+                .result(authenticationService.addRole(request))
+                .build();
+
+    }
 }

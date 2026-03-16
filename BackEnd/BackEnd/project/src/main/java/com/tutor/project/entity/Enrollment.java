@@ -15,18 +15,20 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UpdateRoleRequest {
+public class Enrollment {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     String id;
     @ManyToOne
-    @JoinColumn(name="user_id",nullable = false)
+    @JoinColumn(name = "course_id", nullable = false)
+    Course course;
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
     User user;
-    String cvImage;
     @Enumerated(EnumType.STRING)
     ReviewStatus reviewStatus;
     @Enumerated(EnumType.STRING)
     PaymentStatus paymentStatus;
     LocalDateTime paymentDeadline;
-    LocalDateTime requestedAt;
+    LocalDateTime createdAt;
 }

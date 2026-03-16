@@ -5,6 +5,7 @@ import com.tutor.project.dto.request.UpdateRoleCreationRequest;
 import com.tutor.project.dto.request.UpdateUserRequest;
 import com.tutor.project.dto.request.UserCreationRequest;
 import com.tutor.project.dto.response.ApiResponse;
+import com.tutor.project.dto.response.UpdateRoleResponse;
 import com.tutor.project.dto.response.UserResponse;
 import com.tutor.project.entity.UpdateRoleRequest;
 import com.tutor.project.service.UserService;
@@ -80,6 +81,12 @@ public class UserController {
         userService.completedPayment(requestRoleId);
         return ApiResponse.builder()
                 .message("done payment")
+                .build();
+    }
+    @GetMapping("/requests")
+    public ApiResponse<List<UpdateRoleResponse>> getAllRequest(){
+        return ApiResponse.<List<UpdateRoleResponse>>builder()
+                .result(userService.findAllRequestUpdateRole())
                 .build();
     }
 }

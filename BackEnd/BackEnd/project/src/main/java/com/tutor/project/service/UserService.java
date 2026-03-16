@@ -6,6 +6,7 @@ import com.tutor.project.constant.ReviewStatus;
 import com.tutor.project.dto.request.UpdateRoleCreationRequest;
 import com.tutor.project.dto.request.UpdateUserRequest;
 import com.tutor.project.dto.request.UserCreationRequest;
+import com.tutor.project.dto.response.UpdateRoleResponse;
 import com.tutor.project.dto.response.UserResponse;
 import com.tutor.project.entity.UpdateRoleRequest;
 import com.tutor.project.entity.User;
@@ -40,59 +41,66 @@ public class UserService {
     AuthenticationService authenticationService;
     RoleRepository roleRepository;
     UpdateRoleRequestRepository updateRoleRequestRepository;
+
     public String registry(UserCreationRequest request) throws KeyLengthException {
-        if(userRepository.findByUsername(request.getUsername()).isPresent()){
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
-        User user =userMapper.toUser(request);
+        // send email
+        User user = userMapper.toUser(request);
         log.info(user.getUsername());
-        var role=roleRepository.findByName("STUDENT").orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
+        var role = roleRepository.findByName("STUDENT").orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
         user.setRoles(Set.of(role));
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user = userRepository.save(user);
         return authenticationService.generateToken(user.getId());
     }
+
     @PreAuthorize("hasAuthority('SCOPE_ROLE_ADMIN')")
-    public List<UserResponse> findAll(){
+    public List<UserResponse> findAll() {
         return userRepository.findAll().stream()
                 .map(userMapper::toUserResponse).toList();
     }
-    public List<UserResponse> findByFullNameContainKeyword(String keyword){
-        List<UserResponse> lstUsers= new ArrayList<>();
-        if(userRepository.findFullNamContainKeyword("%"+keyword+"%").isPresent()) {
+
+    public List<UserResponse> findByFullNameContainKeyword(String keyword) {
+        List<UserResponse> lstUsers = new ArrayList<>();
+        if (userRepository.findFullNamContainKeyword("%" + keyword + "%").isPresent()) {
             lstUsers = userRepository.findFullNamContainKeyword("%" + keyword + "%")
                     .get().stream().map(userMapper::toUserResponse).toList();
         }
         return lstUsers;
     }
-    public void delete(String userId){
-        String id= SecurityContextHolder.getContext().getAuthentication().getName();
-        if(!id.equals(userId)){
+
+    public void delete(String userId) {
+        String id = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!id.equals(userId)) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
         userRepository.findById(userId).orElseThrow(()
-                ->new AppException(ErrorCode.USER_NOT_EXISTED));
+                -> new AppException(ErrorCode.USER_NOT_EXISTED));
         userRepository.deleteById(userId);
     }
-    public String update(String userId, UpdateUserRequest request){
-        String id= SecurityContextHolder.getContext().getAuthentication().getName();
-        if(!id.equals(userId)){
+
+    public String update(String userId, UpdateUserRequest request) {
+        String id = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!id.equals(userId)) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
-        var user=userRepository.findById(userId).orElseThrow(()
-                ->new AppException(ErrorCode.USER_NOT_EXISTED));
-        userMapper.updateUser(request,user);
+        var user = userRepository.findById(userId).orElseThrow(()
+                -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        userMapper.updateUser(request, user);
         userRepository.save(user);
         return "Update successful";
     }
-    public String createUpdateRoleRequest(UpdateRoleCreationRequest request){
-        var userId= SecurityContextHolder.getContext().getAuthentication().getName();
-        var check=updateRoleRequestRepository.findByUserId(userId);
-        if(check.isPresent()){
-            log.info("user id:{}",check.get().getUser().getId());
+
+    public String createUpdateRoleRequest(UpdateRoleCreationRequest request) {
+        var userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        var check = updateRoleRequestRepository.findByUserId(userId);
+        if (check.isPresent()) {
+            log.info("user id:{}", check.get().getUser().getId());
             throw new AppException(ErrorCode.UPDATE_ROLE_REQUEST_EXISTED);
         }
-        User user= userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         UpdateRoleRequest u = new UpdateRoleRequest();
         u.setRequestedAt(LocalDateTime.now());
@@ -103,33 +111,40 @@ public class UserService {
         updateRoleRequestRepository.save(u);
         return "request successful";
     }
+
     @PreAuthorize("hasAuthority('SCOPE_ROLE_ADMIN')")
-    public void  handleUpdateRoleRequest(String requestUpdateRoleId, boolean isApproved){
-        var request=updateRoleRequestRepository.findById(requestUpdateRoleId)
-                .orElseThrow(()-> new AppException(ErrorCode.UPDATE_ROLE_REQUEST_NOT_EXISTED));
-        if(isApproved){
+    public void handleUpdateRoleRequest(String requestUpdateRoleId, boolean isApproved) {
+        var request = updateRoleRequestRepository.findById(requestUpdateRoleId)
+                .orElseThrow(() -> new AppException(ErrorCode.UPDATE_ROLE_REQUEST_NOT_EXISTED));
+        if (isApproved) {
             request.setReviewStatus(ReviewStatus.APPROVED);
             request.setPaymentDeadline(LocalDateTime.now().plusDays(3));
-        }else{
+        } else {
             request.setReviewStatus(ReviewStatus.REJECTED);
         }
         updateRoleRequestRepository.save(request);
     }
-    public void completedPayment(String requestUpdateRoleId){
-        var request=updateRoleRequestRepository.findById(requestUpdateRoleId)
-                .orElseThrow(()-> new AppException(ErrorCode.UPDATE_ROLE_REQUEST_NOT_EXISTED));
-        if(!request.getReviewStatus().equals("1")){
+
+    public void completedPayment(String requestUpdateRoleId) {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        var request = updateRoleRequestRepository.findById(requestUpdateRoleId)
+                .orElseThrow(() -> new AppException(ErrorCode.UPDATE_ROLE_REQUEST_NOT_EXISTED));
+        if (!request.getReviewStatus().equals(ReviewStatus.APPROVED) ||
+                !request.getUser().getId().equals(userId)) {
+            log.info("reviewStatus :{}", request.getReviewStatus());
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
+        // just checking and demo this part will be detached in another function
         request.setPaymentStatus(PaymentStatus.PAID);
 
-        User user= userRepository.findByIdWithRoles(request.getUser().getId())
+        User user = userRepository.findByIdWithRoles(request.getUser().getId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        var role=roleRepository.findByName("TUTOR").orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
+        var role = roleRepository.findByName("TUTOR").orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
         user.getRoles().add(role);
         userRepository.save(user);
         updateRoleRequestRepository.save(request);
     }
+
     // running every one hour
     @Scheduled(fixedRate = 3600000)
     public void expiredRequest() {
@@ -140,5 +155,19 @@ public class UserService {
         log.info("size: {}", lst.size());
         lst.forEach(request -> request.setPaymentStatus(PaymentStatus.EXPIRED));
         updateRoleRequestRepository.saveAll(lst);
+    }
+
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_ADMIN')")
+    public List<UpdateRoleResponse> findAllRequestUpdateRole() {
+        return updateRoleRequestRepository.findAll().stream().map(request ->
+                UpdateRoleResponse.builder()
+                        .id(request.getId())
+                        .cvImage(request.getCvImage())
+                        .requestedAt(request.getRequestedAt())
+                        .paymentDeadline(request.getPaymentDeadline())
+                        .reviewStatus(request.getReviewStatus())
+                        .paymentStatus(request.getPaymentStatus())
+                        .build()
+        ).toList();
     }
 }
