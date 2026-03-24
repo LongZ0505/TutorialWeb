@@ -1,8 +1,10 @@
 package com.tutor.project.controller;
 
+import com.tutor.project.dto.request.CourseBatchCreationRequest;
 import com.tutor.project.dto.request.CourseCreationRequest;
-import com.tutor.project.dto.request.UpdateCourseRequest;
+import com.tutor.project.dto.request.UpdateCourseBatchRequest;
 import com.tutor.project.dto.response.ApiResponse;
+import com.tutor.project.dto.response.CourseBatchResponse;
 import com.tutor.project.dto.response.CourseResponse;
 import com.tutor.project.dto.response.ScheduleResponse;
 import com.tutor.project.service.CourseService;
@@ -10,7 +12,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,9 +29,22 @@ public class CourseController {
                 .result(courseService.create(request))
                 .build();
     }
+    @PostMapping("/batches")
+    public ApiResponse<String> createCourseBatch(@RequestBody CourseBatchCreationRequest request){
+        return ApiResponse.<String>builder()
+                .result(courseService.createCourseBatch(request))
+                .build();
+    }
     @DeleteMapping("/{courseId}")
     public ApiResponse<?> delete(@PathVariable("courseId") String courseId){
         courseService.delete(courseId);
+        return ApiResponse.builder()
+                .result("deleted")
+                .build();
+    }
+    @DeleteMapping("/batches/{courseBatchId}")
+    public ApiResponse<?> deleteCourseBatch(@PathVariable("courseBatchId") String courseBatchId){
+        courseService.cancelCourseBatch(courseBatchId);
         return ApiResponse.builder()
                 .result("deleted")
                 .build();
@@ -43,9 +57,17 @@ public class CourseController {
                 .result("handled")
                 .build();
     }
+    @PutMapping("/reviewBatch/{courseBatchId}")
+    public ApiResponse<?> handleStatusBatch(@PathVariable("courseBatchId") String courseBatchId
+            , @RequestParam("isApproved") boolean isApproved){
+        courseService.handleCreationCourseBatch(courseBatchId,isApproved);
+        return ApiResponse.builder()
+                .result("handled")
+                .build();
+    }
     @PutMapping
-    public ApiResponse<?> update(@RequestBody UpdateCourseRequest request){
-        courseService.update(request);
+    public ApiResponse<?> update(@RequestBody UpdateCourseBatchRequest request){
+        courseService.updateCourseBatch(request);
         return ApiResponse.builder()
                 .result("updated")
                 .build();
@@ -81,6 +103,20 @@ public class CourseController {
     public ApiResponse<List<CourseResponse  >> myCourse(){
         return ApiResponse.<List<CourseResponse>>builder()
                 .result(courseService.myCourse())
+                .build();
+    }
+    @GetMapping("/details/{courseId}")
+    public ApiResponse<List<CourseBatchResponse>> myCourse(
+            @PathVariable("courseId") String courseId){
+        return ApiResponse.<List<CourseBatchResponse>>builder()
+                .result(courseService.detailCourse(courseId))
+                .build();
+    }
+    @PutMapping("/completed/{courseBatchId}")
+    public ApiResponse<?> completedCourseBatch(@PathVariable("courseBatchId") String courseBatchId){
+        courseService.completedCourseBatch(courseBatchId);
+        return ApiResponse.builder()
+                .message("done courseBatch")
                 .build();
     }
 }

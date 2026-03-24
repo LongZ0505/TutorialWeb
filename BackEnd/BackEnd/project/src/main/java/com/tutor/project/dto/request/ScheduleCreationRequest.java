@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ScheduleCreationRequest {
-    String courseId;
+    String courseBatchId;
     LocalDateTime startTime;
     LocalDateTime endTime;
     String meetingLink;

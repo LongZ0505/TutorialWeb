@@ -8,11 +8,9 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UpdateUserRequest {
-    String password;
-    String email;
-    String fullName;
-    String phone;
-    String avatar;
-    String stripeAccountId;
+public class UpdateCourseBatchRequest {
+    String id;
+    int maxStudent;
+    double price;
+    int sessions;
 }

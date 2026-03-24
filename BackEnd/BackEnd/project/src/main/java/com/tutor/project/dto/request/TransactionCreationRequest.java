@@ -1,5 +1,6 @@
 package com.tutor.project.dto.request;
 
+import com.tutor.project.entity.Enrollment;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -8,11 +9,8 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UpdateUserRequest {
-    String password;
-    String email;
-    String fullName;
-    String phone;
-    String avatar;
-    String stripeAccountId;
+public class TransactionCreationRequest {
+    String enrollmentId;
+    String updateRoleRequestId;
+    double amount;
 }

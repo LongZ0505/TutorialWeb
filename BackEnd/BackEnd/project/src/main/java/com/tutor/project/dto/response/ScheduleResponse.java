@@ -13,8 +13,7 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ScheduleResponse {
     String id;
-    String courseId;
-    String courseTitle;
+    String courseBatchId;
     DayOfWeek dayOfWeek;
     LocalDateTime startTime;
     LocalDateTime endTime;

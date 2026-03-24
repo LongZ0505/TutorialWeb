@@ -5,15 +5,10 @@ import com.tutor.project.constant.Status;
 import com.tutor.project.dto.request.ScheduleCreationRequest;
 import com.tutor.project.dto.request.ScheduleUpdateRequest;
 import com.tutor.project.dto.response.ScheduleResponse;
-import com.tutor.project.entity.Course;
-import com.tutor.project.entity.Schedule;
-import com.tutor.project.entity.UpdateRoleRequest;
-import com.tutor.project.entity.User;
+import com.tutor.project.entity.*;
 import com.tutor.project.exception.AppException;
 import com.tutor.project.exception.ErrorCode;
-import com.tutor.project.repository.CourseRepository;
-import com.tutor.project.repository.ScheduleRepository;
-import com.tutor.project.repository.UserRepository;
+import com.tutor.project.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -32,16 +28,16 @@ import java.util.List;
 public class ScheduleService {
     ScheduleRepository scheduleRepository;
     UserRepository userRepository;
+    CourseBatchRepository courseBatchRepository;
     CourseRepository courseRepository;
-
+    EnrollmentRepository enrollmentRepository;
     // for Tutor
     @PreAuthorize("hasAuthority('SCOPE_ROLE_TUTOR')")
     public String createSchedule(ScheduleCreationRequest request) {
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         if (request.getStartTime().isAfter(request.getEndTime())) {
             throw new AppException(ErrorCode.INVALID_DATA);
         }
-        var check = scheduleRepository.findByUserId(userId);
+        var check = scheduleRepository.findByCourseBatchId(request.getCourseBatchId());
         if (check.stream().anyMatch(schedule ->
                 schedule.equals(Schedule.builder()
                         .startTime(request.getStartTime())
@@ -49,14 +45,11 @@ public class ScheduleService {
                         .build()))) {
             throw new AppException(ErrorCode.SCHEDULE_EXISTED);
         }
-        User user = userRepository.findById(userId).
-                orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        Course course = courseRepository.findById(request.getCourseId()).
+        CourseBatch courseBatch = courseBatchRepository.findById(request.getCourseBatchId()).
                 orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_EXISTED));
         Schedule schedule = Schedule.builder()
-                .course(course)
+                .courseBatch(courseBatch)
                 .status(Status.PENDING) // status of class -> all done then tutor can draw
-                .user(user)
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .meetingLink(request.getMeetingLink())
@@ -66,49 +59,59 @@ public class ScheduleService {
     }
 
     public List<ScheduleResponse> mySchedule() {
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        return scheduleRepository.findByUserId(userId).stream()
-                .map(schedule ->
-                        ScheduleResponse.builder()
-                                .id(schedule.getId())
-                                .courseId(schedule.getCourse().getId())
-                                .courseTitle(schedule.getCourse().getTitle())
-                                .dayOfWeek(schedule.getStartTime().getDayOfWeek())
-                                .endTime(schedule.getEndTime())
-                                .startTime(schedule.getStartTime())
-                                .meetingLink(schedule.getMeetingLink())
-                                .build()).toList();
+        var userId=SecurityContextHolder.getContext().getAuthentication().getName();
+        var roles= SecurityContextHolder.getContext().getAuthentication().getAuthorities();
+        // student then check enrollment || tutor check courseBatch
+        List<Schedule> lst= new ArrayList<>();
+        if(roles.stream().anyMatch(grantedAuthority ->
+                grantedAuthority.getAuthority().equals("SCOPE_ROLE_TUTOR"))){
+            var courses= courseRepository.findAllFetchCourseBatch();
+            List<String> ids=courses.stream().map(Course::getId).toList();
+            courseBatchRepository.findByCourseIdInFetchSchedule(ids).forEach(
+                    courseBatch -> lst.addAll(courseBatch.getSchedules()));
+        }else{
+            var enrollments= enrollmentRepository.findByUserId(userId);
+            List<String> ids= enrollments.stream().map(Enrollment::getId).toList();
+            courseBatchRepository.findByIdInFetchSchedule(ids).forEach(
+                    courseBatch -> lst.addAll(courseBatch.getSchedules()));
+        }
+        return lst.stream()
+                .map(schedule -> ScheduleResponse.builder()
+                                    .id(schedule.getId())
+                                    .courseBatchId(schedule.getCourseBatch().getId())
+                                    .dayOfWeek(schedule.getStartTime().getDayOfWeek())
+                                    .endTime(schedule.getEndTime())
+                                    .startTime(schedule.getStartTime())
+                                    .meetingLink(schedule.getMeetingLink())
+                                    .build()).toList();
+
     }
 
     public void deleteSchedule(String scheduleId) {
-        String userId=SecurityContextHolder.getContext().getAuthentication().getName();
-        var check=scheduleRepository.findById(scheduleId)
+        scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_EXISTED));
-        if(!check.getUser().getId().equals(userId))
-            throw new AppException(ErrorCode.UNAUTHORIZED);
         scheduleRepository.deleteById(scheduleId);
     }
+
     @PreAuthorize("hasAuthority('SCOPE_ROLE_TUTOR')")
     public void updateSchedule(ScheduleUpdateRequest request) {
-        String userId=SecurityContextHolder.getContext().getAuthentication().getName();
         var schedule = scheduleRepository.findById(request.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_EXISTED));
-        if(!schedule.getUser().getId().equals(userId))
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        // send email to student
+        // send email to student in enrollment
         schedule.setEndTime(request.getEndTime());
         schedule.setStartTime(request.getStartTime());
         schedule.setMeetingLink(request.getMeetingLink());
         scheduleRepository.save(schedule);
     }
-    @Scheduled(fixedRate = 3600000)
+
+    @Scheduled(cron = "0 0 1 * * ?")
     public void expiredRequest() {
         log.info("checking report class");
         // check report
 
         // check report
-        List<Schedule> lst= scheduleRepository.findByDate(LocalDateTime.now().minusHours(24)
-                ,LocalDateTime.now());
+        List<Schedule> lst = scheduleRepository.findByDate(LocalDateTime.now().minusHours(24)
+                , LocalDateTime.now());
         lst.forEach(schedule -> schedule.setStatus(Status.DONE));
     }
 }

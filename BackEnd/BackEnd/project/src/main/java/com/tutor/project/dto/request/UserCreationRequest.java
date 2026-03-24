@@ -15,4 +15,5 @@ public class UserCreationRequest {
     String fullName;
     String phone;
     String avatar;
+    String stripeAccountId;
 }

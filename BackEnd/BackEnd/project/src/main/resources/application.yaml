@@ -30,3 +30,9 @@ jwt:
   signerKey: "XYzH2Gcs4WwoA2EJq24WxQH7+CeHz1UucRTElJmvGqb0G5FDxZsJ9q4p3FPdDwaP"
   valid-duration: 3600
   refresh-duration: 36000
+fee:
+  price: 400000
+stripe:
+  signingKey: "whsec_e1ebcaf938619bebfe889ee68cec5f5ba894c9b6bbef2fbb37594b98a4e5fff1"
+  publicKey: "pk_test_51TA6o4Pojf0xWr0KHYbK5sl4KSpbxcR0rFWpxK1wJn9iqdpjuh31Yqq8qpS7qet4HgZ8UWZoUhaFHa4yqVFJZN4S00Jzgnnfdf"
+  secretKey: "sk_test_51TA6o4Pojf0xWr0KLvMHZFEwU2xxQihbevgLBIci4KDGxrSGTen75Cg6iu6OUdGI4zZRyte9eTxgZcfRl4ygysc900kWBWYSDc"

@@ -12,7 +12,6 @@ public class EnrollmentMapper {
         return EnrollmentResponse.builder()
                 .id(enrollment.getId())
                 .paymentStatus(enrollment.getPaymentStatus())
-                .titleOfCourse(enrollment.getCourse().getTitle())
                 .username(enrollment.getUser().getUsername())
                 .reviewStatus(enrollment.getReviewStatus())
                 .createdAt(enrollment.getCreatedAt())

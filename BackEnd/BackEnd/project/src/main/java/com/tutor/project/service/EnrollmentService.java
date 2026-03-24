@@ -4,13 +4,11 @@ import com.tutor.project.constant.PaymentStatus;
 import com.tutor.project.constant.ReviewStatus;
 import com.tutor.project.dto.request.EnrollmentCreationRequest;
 import com.tutor.project.dto.response.EnrollmentResponse;
-import com.tutor.project.entity.Course;
-import com.tutor.project.entity.Enrollment;
-import com.tutor.project.entity.UpdateRoleRequest;
-import com.tutor.project.entity.User;
+import com.tutor.project.entity.*;
 import com.tutor.project.exception.AppException;
 import com.tutor.project.exception.ErrorCode;
 import com.tutor.project.mapper.EnrollmentMapper;
+import com.tutor.project.repository.CourseBatchRepository;
 import com.tutor.project.repository.CourseRepository;
 import com.tutor.project.repository.EnrollmentRepository;
 import com.tutor.project.repository.UserRepository;
@@ -33,26 +31,27 @@ import java.util.logging.ErrorManager;
 public class EnrollmentService {
     CourseService courseService;
     EnrollmentRepository enrollmentRepository;
-    CourseRepository courseRepository;
+    CourseBatchRepository courseBatchRepository;
     UserRepository userRepository;
     EnrollmentMapper enrollmentMapper;
+    CourseRepository courseRepository;
 
     public String enrollCourse(EnrollmentCreationRequest request) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        var check = enrollmentRepository.findByUserIdAndCourseId(userId, request.getCourseId());
+        var check = enrollmentRepository.findByUserIdAndCourseBatchId(userId, request.getCourseBatchId());
         if (check.isPresent()) {
             throw new AppException(ErrorCode.ENROLLMENT_EXISTED);
         }
-        int currentStudent = courseService.quantityEnrollment(request.getCourseId());
+        int currentStudent = courseService.quantityEnrollment(request.getCourseBatchId());
         User user = userRepository.findById(userId).
                 orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        Course course = courseRepository.findById(request.getCourseId()).
-                orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_EXISTED));
-        if (++currentStudent > course.getMaxStudent()) {
+        CourseBatch courseBatch = courseBatchRepository.findById(request.getCourseBatchId()).
+                orElseThrow(() -> new AppException(ErrorCode.COURSE_BATCH_NOT_EXISTED));
+        if (++currentStudent > courseBatch.getMaxStudent()) {
             throw new AppException(ErrorCode.INVALID_DATA);
         }
         Enrollment enrollment = Enrollment.builder()
-                .course(course)
+                .courseBatch(courseBatch)
                 .user(user)
                 .createdAt(LocalDateTime.now())
                 .reviewStatus(ReviewStatus.PENDING)
@@ -67,7 +66,9 @@ public class EnrollmentService {
         var userId = SecurityContextHolder.getContext().getAuthentication().getName();
         var request = enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.ENROLLMENT_NOT_EXISTED));
-        Course course = courseRepository.findById(request.getCourse().getId())
+        CourseBatch courseBatch = courseBatchRepository.findById(request.getCourseBatch().getId())
+                .orElseThrow(() -> new AppException(ErrorCode.COURSE_BATCH_NOT_EXISTED));
+        Course course = courseRepository.findById(courseBatch.getCourse().getId())
                 .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_EXISTED));
         if (!userId.equals(course.getUser().getId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
@@ -82,14 +83,16 @@ public class EnrollmentService {
     }
 
     @PreAuthorize("hasAuthority('SCOPE_ROLE_TUTOR')")
-    public List<EnrollmentResponse> enrollmentOfCourse(String courseId) {
+    public List<EnrollmentResponse> enrollmentOfCourse(String courseBatchId) {
         var userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        Course course = courseRepository.findById(courseId)
+        CourseBatch courseBatch = courseBatchRepository.findById(courseBatchId)
+                .orElseThrow(() -> new AppException(ErrorCode.COURSE_BATCH_NOT_EXISTED));
+        Course course = courseRepository.findById(courseBatch.getCourse().getId())
                 .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_EXISTED));
         if (!userId.equals(course.getUser().getId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
-        var lstEnrollments = enrollmentRepository.findByCourseIdFetch(courseId);
+        var lstEnrollments = enrollmentRepository.findByCourseBatchIdFetch(courseBatchId);
         return lstEnrollments.stream().map(enrollmentMapper::toEnrollmentResponse).toList();
     }
 
@@ -101,26 +104,28 @@ public class EnrollmentService {
     }
 
     public void payEnrollment(String enrollmentId) {
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         var request = enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.ENROLLMENT_NOT_EXISTED));
-        if (!userId.equals(request.getUser().getId()) ||
-                request.getReviewStatus().equals(ReviewStatus.APPROVED))
+        if (!request.getReviewStatus().equals(ReviewStatus.APPROVED) ||
+                request.getPaymentStatus().equals(PaymentStatus.EXPIRED) ||
+                request.getPaymentStatus().equals(PaymentStatus.PAID))
             throw new AppException(ErrorCode.UNAUTHORIZED);
-        // just checking
-//        request.setPaymentStatus(PaymentStatus.PAID);
+
+        request.setPaymentStatus(PaymentStatus.PAID);
+        enrollmentRepository.save(request);
     }
 
     public void cancelEnroll(String enrollmentId) {
-        String userId=SecurityContextHolder.getContext().getAuthentication().getName();
-        var check= enrollmentRepository.findById(enrollmentId)
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        var check = enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.ENROLLMENT_NOT_EXISTED));
-        if(check.getUser().getId().equals(userId))
+        if (check.getUser().getId().equals(userId))
             throw new AppException(ErrorCode.UNAUTHORIZED);
         enrollmentRepository.deleteById(enrollmentId);
     }
 
-    @Scheduled(fixedRate = 3600000)
+    // 1 a.m every day
+    @Scheduled(cron = "0 0 1 * * ?")
     public void expiredRequest() {
         log.info("setting expired enrollment ");
         List<Enrollment> lst = enrollmentRepository.

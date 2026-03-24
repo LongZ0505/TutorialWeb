@@ -28,12 +28,7 @@ public class Course {
     String title;
     String description;
     String imgURL;
-    double price ;
-    int sessions;
-    @Enumerated(EnumType.STRING)
     ReviewStatus reviewStatus;
-    int maxStudent;
-    LocalDateTime createdAt;
     @OneToMany(mappedBy = "course")
-    List<Schedule> schedules;
+    List<CourseBatch> courseBatches;
 }

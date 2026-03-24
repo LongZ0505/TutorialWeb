@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ScheduleUpdateRequest {
     String id;
-    String courseId;
+    String courseBatchId;
     DayOfWeek dayOfWeek;
     LocalDateTime startTime;
     LocalDateTime endTime;

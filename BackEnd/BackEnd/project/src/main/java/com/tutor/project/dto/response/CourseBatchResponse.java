@@ -1,10 +1,10 @@
 package com.tutor.project.dto.response;
 
 import com.tutor.project.constant.ReviewStatus;
+import com.tutor.project.constant.StatusBatch;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -12,12 +12,12 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CourseResponse {
+public class CourseBatchResponse {
     String id;
-    String subjectId;
-    String title;
-    String description;
-    String imgURL;
-    List<CourseBatchResponse> courseBatchResponses;
+    int sessions;
+    double price;
+    int maxStudent;
+    List<ScheduleResponse> scheduleResponseList;
     ReviewStatus reviewStatus;
+    StatusBatch statusBatch;
 }

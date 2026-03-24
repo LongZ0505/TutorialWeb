@@ -25,6 +25,7 @@ public class User {
     String fullName;
     String phone;
     String avatar;
+    String stripeAccountId;
     @ManyToMany
     @JoinTable(name = "user_role",
     joinColumns =@JoinColumn(name = "user_id"),

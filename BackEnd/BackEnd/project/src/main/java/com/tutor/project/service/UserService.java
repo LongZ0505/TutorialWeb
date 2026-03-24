@@ -126,27 +126,29 @@ public class UserService {
     }
 
     public void completedPayment(String requestUpdateRoleId) {
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         var request = updateRoleRequestRepository.findById(requestUpdateRoleId)
                 .orElseThrow(() -> new AppException(ErrorCode.UPDATE_ROLE_REQUEST_NOT_EXISTED));
+        log.info("test1");
         if (!request.getReviewStatus().equals(ReviewStatus.APPROVED) ||
-                !request.getUser().getId().equals(userId)) {
-            log.info("reviewStatus :{}", request.getReviewStatus());
+                request.getPaymentStatus().equals(PaymentStatus.EXPIRED) ||
+                request.getPaymentStatus().equals(PaymentStatus.PAID)) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
+        log.info("test2");
         // just checking and demo this part will be detached in another function
         request.setPaymentStatus(PaymentStatus.PAID);
-
         User user = userRepository.findByIdWithRoles(request.getUser().getId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        var role = roleRepository.findByName("TUTOR").orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
+        log.info("test3");
+        var role = roleRepository.findByName("TUTOR")
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
         user.getRoles().add(role);
         userRepository.save(user);
         updateRoleRequestRepository.save(request);
     }
 
-    // running every one hour
-    @Scheduled(fixedRate = 3600000)
+    // 1 a.m every day
+    @Scheduled(cron = "0 0 1 * * ?")
     public void expiredRequest() {
         log.info("setting expired request ");
         List<UpdateRoleRequest> lst = updateRoleRequestRepository.

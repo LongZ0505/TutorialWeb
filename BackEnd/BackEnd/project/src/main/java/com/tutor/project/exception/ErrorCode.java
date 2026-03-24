@@ -23,6 +23,10 @@ public enum ErrorCode {
     SCHEDULE_NOT_EXISTED(1013,"Schedule not existed", HttpStatus.BAD_REQUEST),
     SCHEDULE_EXISTED(1014,"Schedule existed", HttpStatus.BAD_REQUEST),
     INVALID_DATA(1015,"Invalid data", HttpStatus.BAD_REQUEST),
+    TRANSACTION_EXISTED(1016,"Transaction existed", HttpStatus.BAD_REQUEST),
+    TRANSACTION_NOT_EXISTED(1017,"Transaction not existed", HttpStatus.BAD_REQUEST),
+    COURSE_BATCH_NOT_EXISTED(1018,"Course batch not existed", HttpStatus.BAD_REQUEST),
+    COURSE_BATCH_EXISTED(1019,"Course batch existed", HttpStatus.BAD_REQUEST),
     ;
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

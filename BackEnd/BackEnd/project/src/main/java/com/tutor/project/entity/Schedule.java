@@ -21,17 +21,13 @@ public class Schedule {
     @GeneratedValue(strategy = GenerationType.UUID)
     String id;
     @ManyToOne
-    @JoinColumn(name = "course_id", nullable = false)
-    Course course;
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    User user;
+    @JoinColumn(name = "courseBatch_id", nullable = false)
+    CourseBatch courseBatch;
     @Enumerated(EnumType.STRING)
     Status status;
     LocalDateTime startTime;
     LocalDateTime endTime;
     String meetingLink;
-
     public boolean equals(Schedule schedule) {
         if (this.getStartTime().equals(schedule.getStartTime())
                 && this.getEndTime().equals(schedule.getEndTime()))

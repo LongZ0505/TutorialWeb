@@ -12,12 +12,11 @@ import java.util.Optional;
 
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule,String> {
-    List<Schedule> findByCourseId(String courseId);
-    Optional<Schedule> findByUserIdAndCourseId(String userId,String courseId);
-    @Query("SELECT s FROM Schedule s JOIN FETCH s.course WHERE s.user.id=:userId")
-    List<Schedule> findByUserId(@Param("userId") String userId);
+    List<Schedule> findByCourseBatchId(String courseBatchId);
     @Query("SELECT s FROM Schedule s WHERE s.startTime >:startDate " +
             "and s.startTime<:endDate ")
     List<Schedule> findByDate(@Param("startDate")LocalDateTime startDate,
                               @Param("endDate") LocalDateTime endDate);
+    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.courseBatch.id=:courseBatchId and s.status = DONE")
+    int countCompletedScheduleOfCourseBatch(@Param("courseBatchId") String courseBatchId);
 }
